@@ -1,0 +1,6 @@
+{
+  "url": "https://example.com/pgvector-production",
+  "title": "Operating pgvector in Production",
+  "snippet": "pgvector adds vector similarity search to Postgres. HNSW indexes outperform IVFFlat on most production workloads up to ~10M vectors.",
+  "body": "pgvector is a Postgres extension exposing the vector type and three index strategies: brute force, IVFFlat, and HNSW. HNSW (Hierarchical Navigable Small World) typically offers better recall at low query latency for corpora under ~10M vectors, with build parameters m=16 and ef_construction=64 as reasonable defaults. The cosine distance operator <=> integrates with standard SQL queries, making hybrid retrieval — vector similarity combined with tsvector full-text search — expressible without leaving Postgres. The trade-off is index build cost and memory; HNSW indexes are roughly 2x the size of IVFFlat for the same recall target."
+}

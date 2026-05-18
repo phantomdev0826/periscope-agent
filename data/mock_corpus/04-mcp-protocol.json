@@ -1,0 +1,6 @@
+{
+  "url": "https://example.com/mcp-spec-2024",
+  "title": "Model Context Protocol: Standardized Tool Access for LLMs",
+  "snippet": "MCP defines a JSON-RPC-based protocol for exposing tools, resources, and prompts to LLM clients. Released by Anthropic in late 2024.",
+  "body": "The Model Context Protocol (MCP) standardizes how language model clients connect to external systems. Servers expose three capability surfaces: tools (callable functions with JSON schemas), resources (URI-addressable content), and prompts (reusable templates). The transport is JSON-RPC, typically over stdio or HTTP. Production MCP servers implement strict input schemas via Pydantic or similar, sandbox sensitive operations such as raw SQL with read-only roles and timeouts, and enforce token-bucket rate limits per client. Compared with bespoke tool integrations, MCP gives a single drop-in interface for Claude Desktop, IDE plugins, and other clients."
+}

@@ -1,0 +1,6 @@
+{
+  "url": "https://example.com/llm-document-extraction",
+  "title": "Production Patterns for LLM Document Extraction",
+  "snippet": "Schema-enforced extraction, per-field confidence, and human-in-the-loop review are what separate production extraction from a demo.",
+  "body": "LLM document extraction in production combines OCR (for layout) with LLM function calling (for semantic structure). Outputs validate against a strict Pydantic schema, so malformed extractions cannot escape into downstream systems. Per-field confidence is computed by combining the model's self-reported probability with heuristic checks (regex shapes, value ranges, presence in source). Below-threshold extractions route to a human review dashboard where reviewer corrections flow back as a prompt-improvement dataset. Every step is logged for audit, with prompt versioning so each prompt change can be evaluated against a regression set. Without these controls, extraction systems hallucinate fields and degrade silently."
+}

@@ -1,0 +1,6 @@
+{
+  "url": "https://example.com/llm-gateway-patterns",
+  "title": "LLM Gateways: Caching, Fallback, and Cost Control",
+  "snippet": "A gateway service in front of LLM providers gives applications cost visibility, response caching, automatic fallback, and rate limiting from one place.",
+  "body": "An LLM gateway sits between application code and provider APIs (OpenAI, Anthropic, AWS Bedrock). The gateway adds a unified API surface, response caching (Redis with prompt-hash keys and configurable TTL), per-request cost calculation using token counts and live provider pricing, automatic fallback across providers when one returns errors, circuit breakers around each provider, and per-API-key token-bucket rate limiting. Cache hit rates of 60 percent or more are achievable on workloads with repeated prompts (search backends, classification pipelines). Structured JSON logs with correlation IDs and Prometheus metrics export to Grafana give operators visibility into cost per request, latency percentiles, and provider health."
+}

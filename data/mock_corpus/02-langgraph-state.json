@@ -1,0 +1,6 @@
+{
+  "url": "https://example.com/langgraph-state-machines",
+  "title": "Building Stateful Agents with LangGraph",
+  "snippet": "LangGraph models agents as state machines: explicit nodes, conditional edges, and built-in checkpointers for resumable execution.",
+  "body": "LangGraph treats an agent as a directed graph of nodes that mutate a shared state object. Conditional edges let one node route to multiple successors based on the current state (for example, a critique node can loop back to search if confidence is below a threshold). The checkpointer abstraction (with Postgres, SQLite, and in-memory implementations) saves state after each node, so runs can be paused, replayed, or resumed across failures. Unlike linear chain frameworks, LangGraph makes the control flow explicit and inspectable — full traces are visible via LangSmith. This is the structure that distinguishes a real agent from a chain dressed up as one."
+}

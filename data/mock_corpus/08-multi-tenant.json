@@ -1,0 +1,6 @@
+{
+  "url": "https://example.com/multi-tenant-ai-saas",
+  "title": "Multi-Tenant Data Isolation for AI SaaS",
+  "snippet": "Row-level security plus per-tenant vector namespaces are the safest pattern for isolating customer data in a multi-tenant LLM SaaS.",
+  "body": "Multi-tenant AI SaaS products must guarantee that one customer's documents never surface in another customer's retrieval results. The strongest pattern is database-enforced isolation: Postgres row-level security on every tenant-scoped table, combined with per-tenant namespacing of the vector index (either via a tenant_id filter on the index, or via separate schemas). Application code should never need to remember to filter by tenant — that is a recipe for cross-tenant leakage when a developer forgets a WHERE clause. Auth platforms like Clerk simplify the upstream side, providing organization-scoped user identity that maps cleanly to tenant_id at the database layer. Usage metering and Stripe billing close the loop, with per-tenant cost reconciliation against actual LLM token usage."
+}

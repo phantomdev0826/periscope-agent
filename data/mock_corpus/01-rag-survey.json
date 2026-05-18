@@ -1,0 +1,6 @@
+{
+  "url": "https://example.com/rag-survey-2024",
+  "title": "A Survey of Retrieval-Augmented Generation Methods (2024)",
+  "snippet": "We review hybrid retrieval, reciprocal rank fusion, cross-encoder reranking, and citation-grounded generation patterns for production RAG.",
+  "body": "Retrieval-Augmented Generation (RAG) systems combine sparse retrieval methods such as BM25 with dense retrieval over learned embeddings to improve recall on both rare-term and paraphrased queries. Reciprocal Rank Fusion (Cormack et al.) is the dominant fusion strategy because it requires no score calibration across rankers; the canonical k value is 60. Cross-encoders such as ms-marco-MiniLM rerank the top-k fused candidates and typically deliver 5-15 percent precision@5 improvements at moderate latency cost. Production RAG additionally requires citation enforcement: claims must reference retrieved chunks, and a separate grounding step measures faithfulness of each claim to its cited source. Evaluation typically reports precision@k, recall@k, MRR, and a faithfulness score derived from an LLM-as-judge entailment check."
+}

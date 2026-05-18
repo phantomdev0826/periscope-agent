@@ -1,0 +1,6 @@
+{
+  "url": "https://example.com/llm-eval-faithfulness",
+  "title": "Measuring Faithfulness in RAG Answers",
+  "snippet": "Faithfulness is the share of generated claims actually entailed by their cited sources, measured via an LLM-as-judge entailment check.",
+  "body": "Faithfulness evaluation breaks each answer into atomic claims and asks a separate LLM (temperature 0) to score each claim's entailment against its cited sources. Scores are calibrated so 1.0 means full support, 0.5 means partial support with added speculation, and 0.0 means contradiction or no basis. The aggregate faithfulness score for a system is the mean across claims on a held-out test set. Frameworks like RAGAS automate this and add complementary metrics: context precision (relevance of retrieved chunks), context recall (coverage of ground-truth information), and answer relevancy. Reporting faithfulness alongside precision@k and recall@k catches regressions that retrieval-only metrics miss — a system can retrieve good context yet still hallucinate."
+}
