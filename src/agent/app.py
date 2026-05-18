@@ -8,13 +8,27 @@ import streamlit as st
 
 from agent.core.config import settings
 from agent.core.logging import configure_logging
-from agent.graph.graph import compiled_graph
+from agent.graph.graph import GraphHandle, build_persistent_graph
 from agent.graph.state import AgentState
 from agent.schemas import Report
 
 configure_logging()
 
 st.set_page_config(page_title="Research Agent", page_icon="🔎", layout="wide")
+
+
+@st.cache_resource(show_spinner="Initializing research agent…")
+def _agent_runtime() -> tuple[asyncio.AbstractEventLoop, GraphHandle]:
+    """Build the compiled graph + checkpointer once per process and share it
+    across Streamlit reruns. The AsyncPostgresSaver pool is bound to whichever
+    event loop opens it, so we keep that loop alive too and route every
+    submission through `loop.run_until_complete(...)`.
+
+    Streamlit's `cache_resource` survives reruns within a single process and
+    is invalidated only on code change or explicit clear."""
+    loop = asyncio.new_event_loop()
+    handle = loop.run_until_complete(build_persistent_graph())
+    return loop, handle
 
 
 # ---- header ----
@@ -49,26 +63,25 @@ question = st.text_area(
 run = st.button("Run research", type="primary", disabled=not question.strip())
 
 
-async def _run_agent(q: str, thread_id: str):  # type: ignore[no-untyped-def]
+async def _run_agent(graph, q: str, thread_id: str):  # type: ignore[no-untyped-def]
     initial: AgentState = {"original_question": q}
     config = {"configurable": {"thread_id": thread_id}}
 
-    async with compiled_graph() as graph:
-        async for event in graph.astream_events(initial, config=config, version="v2"):
-            kind = event.get("event")
-            name = event.get("name", "")
-            if kind == "on_chain_end" and name in {
-                "decompose",
-                "search",
-                "summarize",
-                "synthesize",
-                "critique",
-                "write_report",
-            }:
-                yield ("node_end", name, event.get("data", {}).get("output", {}))
+    async for event in graph.astream_events(initial, config=config, version="v2"):
+        kind = event.get("event")
+        name = event.get("name", "")
+        if kind == "on_chain_end" and name in {
+            "decompose",
+            "search",
+            "summarize",
+            "synthesize",
+            "critique",
+            "write_report",
+        }:
+            yield ("node_end", name, event.get("data", {}).get("output", {}))
 
-        final_state = await graph.aget_state(config)
-        yield ("final", "", final_state.values)
+    final_state = await graph.aget_state(config)
+    yield ("final", "", final_state.values)
 
 
 if run and question.strip():
@@ -80,8 +93,10 @@ if run and question.strip():
     events_log: list[str] = []
     result: dict[str, object] = {"report": None, "state": None}
 
+    loop, handle = _agent_runtime()
+
     async def drive() -> None:
-        async for kind, name, payload in _run_agent(question, thread_id):
+        async for kind, name, payload in _run_agent(handle.graph, question, thread_id):
             if kind == "node_end":
                 progress.info(f"✔ {name}")
                 if isinstance(payload, dict):
@@ -100,7 +115,10 @@ if run and question.strip():
                     result["report"] = Report.model_validate(fr)
 
     with st.spinner("Researching…"):
-        asyncio.run(drive())
+        # Reuse the cached loop so the AsyncPostgresSaver pool (bound to it)
+        # stays valid across submissions. asyncio.run would create a new loop
+        # each time, invalidating the pool.
+        loop.run_until_complete(drive())
 
     final_report = result["report"] if isinstance(result["report"], Report) else None
     final_state_snapshot = result["state"] if isinstance(result["state"], dict) else None
