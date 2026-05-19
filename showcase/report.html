@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speculative decoding · Research Report · Periscope</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2306b6d4'/><stop offset='1' stop-color='%230891b2'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><path d='M9 16 L16 9 L23 16 L16 23 Z' fill='white' opacity='0.95'/></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f9fb;
+  --panel: #ffffff;
+  --paper: #fbfaf6;
+  --ink: #1a1f2e;
+  --ink-2: #2e3445;
+  --muted: #5a627a;
+  --subtle: #8b92a8;
+  --border: #e3e7ed;
+  --accent: #0891b2;
+  --accent-soft: #e0f2fe;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; line-height: 1.55; }
+.paper { font-family: 'Lora', 'Georgia', serif; }
+code, .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; }
+
+.topbar { background: var(--panel); border-bottom: 1px solid var(--border); padding: 11px 24px; display: flex; align-items: center; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 9px; }
+.brand-logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); display: flex; align-items: center; justify-content: center; color: white; }
+.brand-name { font-weight: 600; font-size: 15px; }
+.crumb { color: var(--muted); font-size: 13px; }
+.crumb b { color: var(--ink-2); font-weight: 500; }
+.kbd { padding: 1px 5px; border: 1px solid #d0d6e0; border-radius: 4px; font-size: 10px; background: white; color: var(--muted); font-family: 'JetBrains Mono'; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 7px; font-size: 12.5px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--ink-2); }
+.btn-primary { background: var(--ink); color: white; border-color: var(--ink); }
+.split { flex: 1; }
+
+.page { max-width: 980px; margin: 28px auto 60px; padding: 0 36px; display: grid; grid-template-columns: 220px 1fr; gap: 36px; }
+
+.toc { position: sticky; top: 90px; align-self: start; }
+.toc-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--subtle); font-weight: 600; margin-bottom: 8px; }
+.toc-link { display: block; padding: 4px 10px; border-left: 2px solid transparent; font-size: 13px; color: var(--muted); margin-bottom: 1px; cursor: pointer; }
+.toc-link:hover { color: var(--ink); }
+.toc-link.active { color: var(--accent); border-color: var(--accent); font-weight: 500; }
+
+.report {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 48px 56px;
+  box-shadow: 0 1px 2px rgba(15,20,46,0.03);
+}
+.eyebrow { color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600; margin-bottom: 8px; }
+.title { font-family: 'Lora'; font-size: 32px; font-weight: 600; letter-spacing: -0.018em; line-height: 1.15; margin-bottom: 16px; color: var(--ink); }
+.byline { color: var(--muted); font-size: 13px; padding: 14px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 28px; display: flex; gap: 22px; flex-wrap: wrap; }
+.byline strong { color: var(--ink); }
+.byline-cite { color: var(--accent); }
+
+h2 { font-family: 'Lora'; font-size: 21px; font-weight: 600; letter-spacing: -0.014em; margin: 32px 0 12px; color: var(--ink); }
+h3 { font-family: 'Inter'; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 20px 0 8px; }
+p { font-family: 'Lora'; font-size: 16px; line-height: 1.7; color: var(--ink-2); margin-bottom: 14px; }
+p em { color: var(--muted); }
+.cite-mark { color: var(--accent); font-family: 'Inter'; font-size: 11px; font-weight: 600; padding: 0 4px; background: var(--accent-soft); border-radius: 3px; vertical-align: 2px; margin: 0 1px; cursor: pointer; }
+
+.kbox { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; margin: 14px 0; }
+.kbox-row { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 7px 0; font-size: 13.5px; }
+.kbox-row + .kbox-row { border-top: 1px dashed var(--border); }
+.kbox-label { color: var(--muted); }
+.kbox-value { color: var(--ink); font-family: 'JetBrains Mono'; }
+
+.callout { background: #ecfeff; border: 1px solid #a5f3fc; border-radius: 8px; padding: 14px 18px; margin: 18px 0; font-size: 14px; color: #155e75; display: flex; gap: 12px; }
+.callout svg { flex-shrink: 0; margin-top: 2px; }
+
+.refs { margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--border); }
+.ref { display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 8px 0; font-size: 13.5px; }
+.ref-num { font-family: 'JetBrains Mono'; color: var(--accent); font-weight: 600; }
+.ref-title { color: var(--ink); }
+.ref-meta { color: var(--subtle); font-size: 12px; font-family: 'JetBrains Mono'; margin-top: 2px; }
+
+/* Side compare table */
+.compare { width: 100%; font-size: 13px; border-collapse: collapse; margin: 14px 0; }
+.compare th { background: var(--panel); text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--subtle); border-bottom: 1px solid var(--border); }
+.compare td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-family: 'Inter'; color: var(--ink-2); }
+.compare td.tab { font-family: 'JetBrains Mono'; text-align: right; font-variant-numeric: tabular-nums; }
+.win { color: #047857; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 8 L8 4 L12 8 L8 12 Z"/></svg></div>
+    <span class="brand-name">Periscope</span>
+  </div>
+  <span class="crumb">Reports · <b>Speculative decoding — practical tradeoffs</b></span>
+  <div class="split"></div>
+  <span class="kbd">⌘E</span>
+  <button class="btn">↗ Share</button>
+  <button class="btn">Export PDF</button>
+  <button class="btn btn-primary">Re-run</button>
+</div>
+
+<div class="page">
+  <aside class="toc">
+    <div class="toc-label">Sections</div>
+    <a class="toc-link active">Summary</a>
+    <a class="toc-link">How it works</a>
+    <a class="toc-link">Latency vs throughput</a>
+    <a class="toc-link">Production reports</a>
+    <a class="toc-link">Open questions</a>
+    <a class="toc-link">References (6)</a>
+
+    <div class="toc-label" style="margin-top: 22px;">Provenance</div>
+    <div style="font-size: 12.5px; color: var(--muted); padding: 0 10px;">
+      <div style="padding: 3px 0;">⏱ <span style="color:var(--ink-2)" class="mono">2m 14s</span></div>
+      <div style="padding: 3px 0;">🔁 9 steps</div>
+      <div style="padding: 3px 0;">📄 6 sources</div>
+      <div style="padding: 3px 0; color:#047857;" class="mono">✓ 0.96 grounded</div>
+    </div>
+  </aside>
+
+  <article class="report">
+    <div class="eyebrow">Research note · 18 May 2026</div>
+    <h1 class="title">Speculative decoding: when the extra draft pays off in production</h1>
+    <div class="byline">
+      <span>Compiled by <strong>Periscope agent</strong></span>
+      <span>Model · <strong>claude-sonnet-4-6</strong></span>
+      <span>Token budget · <strong>14,892</strong></span>
+      <span><span class="byline-cite">●</span> grounded · 0.96</span>
+    </div>
+
+    <h2>Summary</h2>
+    <p>
+      Speculative decoding accelerates auto-regressive LLM inference by using a small, fast <em>draft</em> model to propose tokens that a larger <em>target</em> model verifies in parallel <span class="cite-mark">¹</span>. When the draft's distribution closely matches the target's, the technique amortizes target-model FLOPs across multiple accepted tokens — yielding latency reductions of <strong>1.6×–3×</strong> at iso-quality in published benchmarks <span class="cite-mark">²</span>.
+    </p>
+    <p>
+      In production, the wins are real but conditional. They evaporate under one of three failure modes: <em>(i)</em> low acceptance rates at long contexts, <em>(ii)</em> draft model overhead exceeding gain on small targets, and <em>(iii)</em> KV-cache pressure on the verifier in batch=1 streaming.
+    </p>
+
+    <div class="callout">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M8 5 V9 M8 11 V11.1"/></svg>
+      <div><strong>TL;DR.</strong> Worth turning on for Sonnet-class and larger when serving <strong>chat (batch=1, streaming)</strong>. For batch≥16 or models below 8B params, the verification cost typically erases the win.</div>
+    </div>
+
+    <h2>How it works</h2>
+    <p>
+      A draft model proposes <em>γ</em> tokens. The target model is run once over those γ candidates plus one trailing position, producing γ+1 logit distributions in a single forward pass <span class="cite-mark">¹</span>. Each candidate is accepted with probability <code>min(1, p_target(x) / p_draft(x))</code>. The first rejection terminates the chain, sampling one fresh token from a residual distribution. Output is exactly equivalent in distribution to a vanilla target-model sample.
+    </p>
+    <p>
+      Two implementation families exist in production. <em>Tree-based</em> drafting <span class="cite-mark">³</span> increases acceptance by branching at low-confidence positions; <em>n-gram and prompt-lookup</em> avoid the draft model entirely by extracting candidates from the prompt itself — useful for code completion and RAG response synthesis.
+    </p>
+
+    <h2>Latency vs throughput</h2>
+    <p>
+      The headline result depends entirely on what you're optimizing.
+    </p>
+
+    <table class="compare">
+      <thead>
+        <tr><th>Workload</th><th>Baseline (TPS)</th><th>+ Spec. decode (TPS)</th><th>Speedup</th><th>Memory</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Chat · batch=1 · stream</td><td class="tab">38.4</td><td class="tab">96.1</td><td class="tab win">2.50×</td><td class="tab">+8%</td></tr>
+        <tr><td>Code completion · batch=1</td><td class="tab">42.1</td><td class="tab">128.7</td><td class="tab win">3.06×</td><td class="tab">+6%</td></tr>
+        <tr><td>RAG synthesis · batch=4</td><td class="tab">94.8</td><td class="tab">142.3</td><td class="tab win">1.50×</td><td class="tab">+12%</td></tr>
+        <tr><td>Batch · batch=32</td><td class="tab">512.0</td><td class="tab">498.4</td><td class="tab" style="color:#c44561">0.97×</td><td class="tab">+18%</td></tr>
+        <tr><td>Long context · 64k tokens</td><td class="tab">21.3</td><td class="tab">29.8</td><td class="tab win">1.40×</td><td class="tab">+24%</td></tr>
+      </tbody>
+    </table>
+
+    <p>
+      The penalty case is illustrative: at batch=32, target-model utilization is already high, the draft model itself consumes scheduler slots, and verification logits inflate KV memory — so wallclock time <em>slightly degrades</em>. vLLM exposes this as a per-request flag; teams typically gate it on <code>batch &lt; 8</code> <span class="cite-mark">⁴</span>.
+    </p>
+
+    <h2>Production deployment notes</h2>
+    <p>
+      vLLM ships speculative decoding behind <code>--speculative-model</code>, with EAGLE-2 and Medusa as drop-in heads <span class="cite-mark">⁴</span>. The default acceptance threshold (typically <code>γ = 4</code>) works well for most prompts; longer chains require online tuning <span class="cite-mark">³</span>. Anthropic and Bedrock surface this transparently as a server-side optimization; OpenAI does not document it but several inferred behaviours suggest it is enabled for streaming chat.
+    </p>
+
+    <div class="refs">
+      <div class="toc-label">References</div>
+      <div class="ref"><span class="ref-num">[1]</span><div><div class="ref-title">Fast Inference from Transformers via Speculative Decoding</div><div class="ref-meta">arXiv:2211.17192 · Leviathan et al. · Dec 2022</div></div></div>
+      <div class="ref"><span class="ref-num">[2]</span><div><div class="ref-title">Accelerating LLM Inference with Staged Speculative Decoding</div><div class="ref-meta">arXiv:2308.04623 · Spector &amp; Re · Aug 2023</div></div></div>
+      <div class="ref"><span class="ref-num">[3]</span><div><div class="ref-title">EAGLE-2: Faster Inference via Tree-Based Drafting</div><div class="ref-meta">arXiv:2406.16858 · Li et al.</div></div></div>
+      <div class="ref"><span class="ref-num">[4]</span><div><div class="ref-title">Speculative decoding · vLLM Production Stack</div><div class="ref-meta">docs.vllm.ai · v0.7.2</div></div></div>
+      <div class="ref"><span class="ref-num">[5]</span><div><div class="ref-title">vllm-project/vllm · spec_decode_worker.py</div><div class="ref-meta">github.com · commit 9c4e9a1</div></div></div>
+      <div class="ref"><span class="ref-num">[6]</span><div><div class="ref-title">Online Speculative Decoding</div><div class="ref-meta">arXiv:2310.07177 · Liu et al.</div></div></div>
+    </div>
+  </article>
+</div>
+
+</body>
+</html>

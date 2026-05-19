@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Periscope · Research Agent Console</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2306b6d4'/><stop offset='1' stop-color='%230891b2'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><path d='M9 16 L16 9 L23 16 L16 23 Z M16 13 L13 16 L16 19 L19 16 Z' fill='white' opacity='0.95'/></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f9fb;
+  --panel: #ffffff;
+  --panel-2: #f3f5f8;
+  --ink: #1a1f2e;
+  --ink-2: #2e3445;
+  --muted: #5a627a;
+  --subtle: #8b92a8;
+  --border: #e3e7ed;
+  --border-strong: #d0d6e0;
+  --accent: #0891b2;
+  --accent-soft: #e0f2fe;
+  --indigo: #4f46e5;
+  --indigo-soft: #eef2ff;
+  --emerald: #059669;
+  --rose: #e11d48;
+  --amber: #d97706;
+  --code: #1f2937;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; font-feature-settings: 'cv11', 'ss01'; -webkit-font-smoothing: antialiased; letter-spacing: -0.011em; }
+code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+.mono-tab { font-variant-numeric: tabular-nums; }
+
+/* Layout */
+.app { display: grid; grid-template-columns: 240px 1fr 360px; min-height: 100vh; }
+.sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 20px 16px; }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+.brand-logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 1px 3px rgba(8,145,178,0.25); }
+.brand-name { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
+.brand-tag { font-size: 11px; color: var(--subtle); margin-top: -1px; }
+.sb-section { margin-top: 18px; }
+.sb-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--subtle); padding: 0 8px; margin-bottom: 6px; font-weight: 500; }
+.sb-item { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 6px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; }
+.sb-item:hover { background: var(--panel-2); }
+.sb-item.active { background: var(--accent-soft); color: #075985; font-weight: 500; }
+.sb-item svg { width: 15px; height: 15px; opacity: 0.85; }
+.sb-runs { padding: 0 8px; margin-top: 4px; font-size: 12.5px; }
+.sb-run { display: flex; align-items: center; gap: 8px; padding: 5px 0; color: var(--muted); cursor: pointer; }
+.sb-run:hover { color: var(--ink); }
+.sb-run-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--emerald); flex-shrink: 0; }
+.sb-run-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-run-time { font-size: 11px; color: var(--subtle); }
+
+.main { padding: 24px 32px; overflow-y: auto; }
+.crumbs { display: flex; align-items: center; gap: 6px; color: var(--subtle); font-size: 12.5px; margin-bottom: 8px; }
+.crumbs .sep { opacity: 0.45; }
+.title { font-size: 26px; font-weight: 600; letter-spacing: -0.022em; margin-bottom: 6px; }
+.subtitle { color: var(--muted); font-size: 13.5px; max-width: 720px; line-height: 1.5; }
+
+.meta-row { display: flex; gap: 18px; margin-top: 16px; flex-wrap: wrap; }
+.meta { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.meta strong { color: var(--ink); font-weight: 500; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+.pill.ok { background: #ecfdf5; color: #047857; }
+.pill.run { background: #eff6ff; color: #1d4ed8; }
+.pill.amber { background: #fffbeb; color: #b45309; }
+
+/* Graph panel */
+.section { margin-top: 24px; }
+.section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--subtle); font-weight: 600; margin-bottom: 12px; }
+
+.graph-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 24px; box-shadow: 0 1px 2px rgba(15,20,46,0.03); }
+.graph { width: 100%; height: 320px; position: relative; }
+.graph svg { width: 100%; height: 100%; }
+.node { fill: white; stroke: var(--border-strong); stroke-width: 1; }
+.node.done { fill: #ecfdf5; stroke: #34d399; stroke-width: 1.5; }
+.node.run  { fill: #eff6ff; stroke: #60a5fa; stroke-width: 1.5; }
+.node-label { font: 500 12px 'Inter'; fill: var(--ink); }
+.node-sub { font: 11px 'JetBrains Mono'; fill: var(--subtle); }
+.edge { stroke: #cbd5e1; stroke-width: 1.2; fill: none; marker-end: url(#arrow); }
+.edge.live { stroke: #06b6d4; stroke-width: 1.8; stroke-dasharray: 4 3; }
+
+/* Steps log */
+.steps { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.step { display: grid; grid-template-columns: 40px 130px 1fr 90px 60px; align-items: center; gap: 14px; padding: 10px 18px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.step:last-child { border-bottom: none; }
+.step:hover { background: var(--panel-2); }
+.step-idx { font-family: 'JetBrains Mono'; color: var(--subtle); font-size: 12px; }
+.step-node { display: flex; align-items: center; gap: 7px; }
+.step-node-icon { width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+.step-node-icon svg { width: 10px; height: 10px; }
+.step-text { color: var(--muted); }
+.step-text strong { color: var(--ink); font-weight: 500; }
+.step-tok { font-family: 'JetBrains Mono'; color: var(--muted); font-size: 11.5px; text-align: right; }
+.step-lat { font-family: 'JetBrains Mono'; color: var(--subtle); font-size: 11.5px; text-align: right; }
+
+.icon-planner { background: #ede9fe; color: #6d28d9; }
+.icon-search { background: #cffafe; color: #0891b2; }
+.icon-fetch { background: #fef3c7; color: #b45309; }
+.icon-write { background: #d1fae5; color: #047857; }
+.icon-tool { background: #fee2e2; color: #be123c; }
+
+/* Right rail */
+.rail { background: var(--panel); border-left: 1px solid var(--border); padding: 24px 22px; overflow-y: auto; }
+.rail-section { margin-bottom: 26px; }
+.rail-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--subtle); font-weight: 600; margin-bottom: 10px; }
+.stat { display: flex; align-items: baseline; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
+.stat:last-child { border-bottom: none; }
+.stat-label { color: var(--muted); }
+.stat-value { font-family: 'JetBrains Mono'; font-weight: 500; color: var(--ink); }
+.stat-value.ok { color: #059669; }
+
+.cite { padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; font-size: 12.5px; }
+.cite-host { display: flex; align-items: center; gap: 6px; color: var(--accent); font-weight: 500; margin-bottom: 3px; font-size: 11px; }
+.cite-title { color: var(--ink); line-height: 1.45; }
+.cite-meta { color: var(--subtle); font-size: 11px; margin-top: 4px; font-family: 'JetBrains Mono'; }
+
+/* Top bar */
+.topbar { background: var(--panel); border-bottom: 1px solid var(--border); padding: 8px 20px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.topbar-search { flex: 1; max-width: 520px; display: flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 12.5px; color: var(--subtle); }
+.kbd { padding: 1px 5px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 10px; background: white; color: var(--subtle); }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 7px; font-size: 12.5px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--ink-2); }
+.btn-primary { background: var(--ink); color: white; border-color: var(--ink); }
+.btn-primary:hover { background: #000; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4 8 L8 4 L12 8 L8 12 Z M8 6.5 L6.5 8 L8 9.5 L9.5 8 Z"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">Periscope</div>
+        <div class="brand-tag">Research Agent Console</div>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Workspace</div>
+      <div class="sb-item active">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 4 H14 V12 H2 Z M5 6 V10 M8 6 V10 M11 6 V10" stroke="currentColor" fill="none"/></svg>
+        Runs
+      </div>
+      <div class="sb-item">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2"/></svg>
+        Graphs
+      </div>
+      <div class="sb-item">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 5 H13 M3 9 H13 M3 13 H8"/></svg>
+        Reports
+      </div>
+      <div class="sb-item">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 4 V8 L10.5 10"/></svg>
+        Schedules
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Recent runs</div>
+      <div class="sb-runs">
+        <div class="sb-run"><span class="sb-run-dot"></span><span class="sb-run-text">Quantization in MoE archs</span><span class="sb-run-time">2m</span></div>
+        <div class="sb-run"><span class="sb-run-dot"></span><span class="sb-run-text">Speculative decoding tradeoffs</span><span class="sb-run-time">18m</span></div>
+        <div class="sb-run"><span class="sb-run-dot"></span><span class="sb-run-text">Retrieval datasets · benchmark</span><span class="sb-run-time">1h</span></div>
+        <div class="sb-run"><span class="sb-run-dot"></span><span class="sb-run-text">Diffusion sampling tricks</span><span class="sb-run-time">3h</span></div>
+        <div class="sb-run"><span class="sb-run-dot" style="background:#94a3b8"></span><span class="sb-run-text">FlashAttention v3 — read</span><span class="sb-run-time">1d</span></div>
+        <div class="sb-run"><span class="sb-run-dot"></span><span class="sb-run-text">Long-context evaluation</span><span class="sb-run-time">2d</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="main">
+    <div class="topbar" style="margin: -24px -32px 24px; padding-left: 32px; padding-right: 32px;">
+      <div class="crumbs" style="margin: 0;">
+        <span>Runs</span><span class="sep">/</span><span style="color:var(--ink-2)">run_2k7p9q1m</span>
+      </div>
+      <div style="flex:1"></div>
+      <div class="topbar-search">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11 L14 14"/></svg>
+        <span style="flex:1">Search runs, reports, citations…</span>
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2 V14 M2 8 H14"/></svg>New run</button>
+      <button class="btn btn-primary">Re-run</button>
+    </div>
+
+    <div>
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap: 24px;">
+        <div>
+          <div class="title">Speculative decoding — what are the practical tradeoffs?</div>
+          <div class="subtitle">Multi-step research agent traced across <strong>planner → search → fetch → synthesize → write</strong>. Executed via LangGraph; every tool call and observation is logged and replayable.</div>
+        </div>
+        <span class="pill ok">● completed</span>
+      </div>
+
+      <div class="meta-row">
+        <div class="meta">⏱ <strong class="mono-tab">2m 14s</strong></div>
+        <div class="meta">🔁 <strong class="mono-tab">9 steps</strong></div>
+        <div class="meta">📄 <strong class="mono-tab">6 sources</strong></div>
+        <div class="meta">🎯 <strong class="mono-tab">3 tools</strong> · search · fetch · write</div>
+        <div class="meta">💸 <strong class="mono-tab">$0.082</strong> · 14,892 tok</div>
+        <div class="meta">🤖 <strong>claude-sonnet-4-6</strong></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Execution graph</div>
+      <div class="graph-card">
+        <div class="graph">
+          <svg viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0 0 L8 4 L0 8 Z" fill="#94a3b8"/>
+              </marker>
+            </defs>
+            <!-- Edges -->
+            <path class="edge" d="M 120 140 C 160 140 170 80 220 80" />
+            <path class="edge" d="M 120 140 C 160 140 170 140 220 140" />
+            <path class="edge" d="M 120 140 C 160 140 170 200 220 200" />
+            <path class="edge" d="M 310 80 C 360 80 360 140 410 140" />
+            <path class="edge" d="M 310 140 L 410 140" />
+            <path class="edge" d="M 310 200 C 360 200 360 140 410 140" />
+            <path class="edge" d="M 500 140 L 590 140" />
+            <path class="edge" d="M 680 140 L 680 140" />
+            <path class="edge live" d="M 590 140 L 680 140" />
+            <!-- Nodes -->
+            <g><rect class="node done" x="40" y="116" width="80" height="48" rx="10"/><text x="80" y="138" text-anchor="middle" class="node-label">START</text><text x="80" y="154" text-anchor="middle" class="node-sub">planner</text></g>
+            <g><rect class="node done" x="220" y="58"  width="90" height="48" rx="10"/><text x="265" y="80" text-anchor="middle" class="node-label">search.web</text><text x="265" y="96" text-anchor="middle" class="node-sub">arxiv · 3 res</text></g>
+            <g><rect class="node done" x="220" y="116" width="90" height="48" rx="10"/><text x="265" y="138" text-anchor="middle" class="node-label">search.scholar</text><text x="265" y="154" text-anchor="middle" class="node-sub">scholar · 5 res</text></g>
+            <g><rect class="node done" x="220" y="178" width="90" height="48" rx="10"/><text x="265" y="200" text-anchor="middle" class="node-label">search.code</text><text x="265" y="216" text-anchor="middle" class="node-sub">github · 4 res</text></g>
+            <g><rect class="node done" x="410" y="116" width="90" height="48" rx="10"/><text x="455" y="138" text-anchor="middle" class="node-label">fetch.pdf</text><text x="455" y="154" text-anchor="middle" class="node-sub">×6 fetched</text></g>
+            <g><rect class="node done" x="590" y="116" width="90" height="48" rx="10"/><text x="635" y="138" text-anchor="middle" class="node-label">synthesize</text><text x="635" y="154" text-anchor="middle" class="node-sub">3 sections</text></g>
+            <g><rect class="node run"  x="680" y="116" width="80" height="48" rx="10" stroke-dasharray="4 3"/><text x="720" y="138" text-anchor="middle" class="node-label">write</text><text x="720" y="154" text-anchor="middle" class="node-sub">streaming…</text></g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Step trace</div>
+      <div class="steps">
+        <div class="step">
+          <span class="step-idx">01</span>
+          <div class="step-node"><span class="step-node-icon icon-planner"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3 H14 V13 H2 Z"/></svg></span><span style="font-weight:500">planner</span></div>
+          <div class="step-text">Decompose into 3 sub-questions: <strong>(a)</strong> what is speculative decoding, <strong>(b)</strong> latency vs throughput tradeoffs, <strong>(c)</strong> production deployments.</div>
+          <div class="step-tok">312 tok</div>
+          <div class="step-lat">487 ms</div>
+        </div>
+        <div class="step">
+          <span class="step-idx">02</span>
+          <div class="step-node"><span class="step-node-icon icon-search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="M11 11 L14 14"/></svg></span><span style="font-weight:500">search.web</span></div>
+          <div class="step-text"><code>"speculative decoding draft target verification"</code> · returned <strong>3 arXiv hits</strong>.</div>
+          <div class="step-tok">— tok</div>
+          <div class="step-lat">832 ms</div>
+        </div>
+        <div class="step">
+          <span class="step-idx">03</span>
+          <div class="step-node"><span class="step-node-icon icon-search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="M11 11 L14 14"/></svg></span><span style="font-weight:500">search.scholar</span></div>
+          <div class="step-text"><code>"speculative sampling LLM latency"</code> · 5 hits, 3 deduped against web.</div>
+          <div class="step-tok">— tok</div>
+          <div class="step-lat">1.21 s</div>
+        </div>
+        <div class="step">
+          <span class="step-idx">04</span>
+          <div class="step-node"><span class="step-node-icon icon-search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="M11 11 L14 14"/></svg></span><span style="font-weight:500">search.code</span></div>
+          <div class="step-text"><code>"speculative_decoding"</code> on GitHub — 4 reference implementations.</div>
+          <div class="step-tok">— tok</div>
+          <div class="step-lat">654 ms</div>
+        </div>
+        <div class="step">
+          <span class="step-idx">05</span>
+          <div class="step-node"><span class="step-node-icon icon-fetch"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 3 H10 L13 6 V13 H4 Z M10 3 V6 H13"/></svg></span><span style="font-weight:500">fetch.pdf</span></div>
+          <div class="step-text">Downloaded 6 PDFs · parsed ≈ <strong>112 KB</strong> of body text · 248 chunks → vector index.</div>
+          <div class="step-tok">3,184 tok</div>
+          <div class="step-lat">4.92 s</div>
+        </div>
+        <div class="step">
+          <span class="step-idx">06</span>
+          <div class="step-node"><span class="step-node-icon icon-planner"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3 H14 V13 H2 Z"/></svg></span><span style="font-weight:500">planner.replan</span></div>
+          <div class="step-text">Coverage check: sub-question <strong>(c)</strong> under-supported. Issuing <code>search.web</code> for "vllm speculative decoding deployment".</div>
+          <div class="step-tok">186 tok</div>
+          <div class="step-lat">298 ms</div>
+        </div>
+        <div class="step">
+          <span class="step-idx">07</span>
+          <div class="step-node"><span class="step-node-icon icon-write"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 13 L13 3 M11 3 H13 V5"/></svg></span><span style="font-weight:500">synthesize</span></div>
+          <div class="step-text">Drafted <strong>3 sections</strong> with inline citation markers · grouped findings by deployment family.</div>
+          <div class="step-tok">8,210 tok</div>
+          <div class="step-lat">8.17 s</div>
+        </div>
+        <div class="step">
+          <span class="step-idx">08</span>
+          <div class="step-node"><span class="step-node-icon icon-tool"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8 L7 12 L13 4"/></svg></span><span style="font-weight:500">verifier.cite</span></div>
+          <div class="step-text">All 14 claims attributed to source ranges · grounding score <strong style="color:#059669">0.96</strong>.</div>
+          <div class="step-tok">1,820 tok</div>
+          <div class="step-lat">2.04 s</div>
+        </div>
+        <div class="step">
+          <span class="step-idx">09</span>
+          <div class="step-node"><span class="step-node-icon icon-write"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 13 L13 3 M11 3 H13 V5"/></svg></span><span style="font-weight:500">write.report</span></div>
+          <div class="step-text">Streaming the final report to the canvas → <span style="color:var(--accent); font-weight:500">in progress</span>.</div>
+          <div class="step-tok">1,180 tok</div>
+          <div class="step-lat">live</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="rail">
+    <div class="rail-section">
+      <div class="rail-label">Run summary</div>
+      <div class="stat"><span class="stat-label">Status</span><span class="stat-value ok">● running</span></div>
+      <div class="stat"><span class="stat-label">Started</span><span class="stat-value">2m 14s ago</span></div>
+      <div class="stat"><span class="stat-label">Steps</span><span class="stat-value">9</span></div>
+      <div class="stat"><span class="stat-label">Tool calls</span><span class="stat-value">7</span></div>
+      <div class="stat"><span class="stat-label">Tokens</span><span class="stat-value">14,892</span></div>
+      <div class="stat"><span class="stat-label">Cost (USD)</span><span class="stat-value">$0.0823</span></div>
+      <div class="stat"><span class="stat-label">Grounding</span><span class="stat-value ok">0.96</span></div>
+    </div>
+
+    <div class="rail-section">
+      <div class="rail-label">Citations (6)</div>
+      <div class="cite">
+        <div class="cite-host">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3 L13 3 V13 H3 Z M5 6 H11 M5 9 H11"/></svg>
+          arxiv.org
+        </div>
+        <div class="cite-title">Fast Inference from Transformers via Speculative Decoding</div>
+        <div class="cite-meta">2211.17192 · Leviathan et al.</div>
+      </div>
+      <div class="cite">
+        <div class="cite-host"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3 L13 3 V13 H3 Z M5 6 H11 M5 9 H11"/></svg>arxiv.org</div>
+        <div class="cite-title">Accelerating LLM Inference with Staged Speculative Decoding</div>
+        <div class="cite-meta">2308.04623 · Spector & Re</div>
+      </div>
+      <div class="cite">
+        <div class="cite-host"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3 L13 3 V13 H3 Z M5 6 H11 M5 9 H11"/></svg>arxiv.org</div>
+        <div class="cite-title">Online Speculative Decoding</div>
+        <div class="cite-meta">2310.07177 · Liu et al.</div>
+      </div>
+      <div class="cite">
+        <div class="cite-host"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6"/></svg>docs.vllm.ai</div>
+        <div class="cite-title">Speculative decoding · vLLM Production Stack</div>
+        <div class="cite-meta">v0.7.2 release notes</div>
+      </div>
+      <div class="cite">
+        <div class="cite-host"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M2 6 L8 2 L14 6 L8 10 Z M2 6 V11 L8 14 L14 11 V6"/></svg>github.com</div>
+        <div class="cite-title">vllm-project/vllm · spec_decode_worker.py</div>
+        <div class="cite-meta">commit 9c4e9a1 · main</div>
+      </div>
+    </div>
+
+    <div class="rail-section">
+      <div class="rail-label">Replay controls</div>
+      <button class="btn" style="width: 100%; justify-content: center; margin-bottom: 8px;">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2 V14 L13 8 Z"/></svg>
+        Replay from step 5
+      </button>
+      <button class="btn" style="width: 100%; justify-content: center;">
+        Export as Markdown
+      </button>
+    </div>
+  </aside>
+</div>
+
+</body>
+</html>

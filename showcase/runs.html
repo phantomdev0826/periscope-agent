@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Runs · Periscope</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2306b6d4'/><stop offset='1' stop-color='%230891b2'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><path d='M9 16 L16 9 L23 16 L16 23 Z M16 13 L13 16 L16 19 L19 16 Z' fill='white' opacity='0.95'/></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f9fb; --panel: #ffffff; --panel-2: #f3f5f8;
+  --ink: #1a1f2e; --ink-2: #2e3445; --muted: #5a627a; --subtle: #8b92a8;
+  --border: #e3e7ed; --border-strong: #d0d6e0;
+  --accent: #0891b2; --accent-soft: #e0f2fe;
+  --indigo: #4f46e5; --emerald: #059669; --rose: #e11d48; --amber: #d97706;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; letter-spacing: -0.011em; line-height: 1.5; }
+.mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+.tab { font-variant-numeric: tabular-nums; }
+a { color: var(--accent); text-decoration: none; }
+
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 20px 16px; }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+.brand-logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 1px 3px rgba(8,145,178,0.25); }
+.brand-name { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
+.brand-tag { font-size: 11px; color: var(--subtle); margin-top: -1px; }
+.sb-section { margin-top: 18px; }
+.sb-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--subtle); padding: 0 8px; margin-bottom: 6px; font-weight: 500; }
+.sb-item { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 6px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; }
+.sb-item:hover { background: var(--panel-2); }
+.sb-item.active { background: var(--accent-soft); color: #075985; font-weight: 500; }
+.sb-item svg { width: 15px; height: 15px; opacity: 0.85; }
+
+.main { padding: 24px 32px; overflow-y: auto; }
+.topbar { background: var(--panel); border-bottom: 1px solid var(--border); padding: 10px 22px; display: flex; align-items: center; gap: 12px; margin: -24px -32px 24px; font-size: 13px; }
+.kbd { padding: 1px 5px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 10px; background: white; color: var(--subtle); font-family: 'JetBrains Mono'; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 7px; font-size: 12.5px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--ink-2); }
+.btn-primary { background: var(--ink); color: white; border-color: var(--ink); }
+.crumb { color: var(--subtle); }
+.crumb b { color: var(--ink-2); }
+.topbar-search { flex: 1; max-width: 520px; display: flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 12.5px; color: var(--subtle); }
+
+.title { font-size: 26px; font-weight: 600; letter-spacing: -0.022em; margin-bottom: 4px; }
+.subtitle { color: var(--muted); font-size: 13.5px; max-width: 720px; }
+
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 18px; margin-bottom: 22px; }
+.kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px; }
+.kpi-l { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--subtle); font-weight: 500; }
+.kpi-v { font-size: 22px; font-weight: 600; font-family: 'JetBrains Mono'; margin-top: 4px; }
+.kpi-d { font-size: 10.5px; font-weight: 600; margin-top: 4px; font-family: 'JetBrains Mono'; color: var(--emerald); }
+.kpi-d.neg { color: var(--rose); }
+
+.filters { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); color: var(--ink-2); cursor: pointer; background: white; }
+.chip.active { background: var(--accent-soft); color: #075985; border-color: #67e8f9; font-weight: 500; }
+
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.t { width: 100%; font-size: 13px; }
+.t th { text-align: left; padding: 9px 14px; color: var(--subtle); font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; font-weight: 600; border-bottom: 1px solid var(--border); background: #fafbfc; }
+.t td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--ink-2); }
+.t tr:hover td { background: #fafbfc; }
+.t tr:last-child td { border-bottom: 0; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+.pill .dot { width: 5px; height: 5px; border-radius: 50%; }
+.pill.ok { background: #ecfdf5; color: var(--emerald); } .pill.ok .dot { background: var(--emerald); }
+.pill.run { background: #eff6ff; color: #1d4ed8; } .pill.run .dot { background: #3b82f6; animation: pul 1.4s infinite; }
+.pill.amber { background: #fffbeb; color: var(--amber); } .pill.amber .dot { background: var(--amber); }
+.pill.rose { background: #fef2f2; color: var(--rose); } .pill.rose .dot { background: var(--rose); }
+.pill.cool { background: #ecfeff; color: #0e7490; }
+@keyframes pul { 50% { opacity: 0.4; } }
+
+.q { font-weight: 500; color: var(--ink); line-height: 1.4; }
+.q-sub { font-size: 11px; color: var(--subtle); margin-top: 2px; font-family: 'JetBrains Mono'; }
+.bar-mini { display: inline-flex; align-items: center; gap: 1px; height: 14px; vertical-align: middle; margin-left: 4px; }
+.bar-mini i { width: 4px; background: #67e8f9; border-radius: 1px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 8 L8 4 L12 8 L8 12 Z M8 6.5 L6.5 8 L8 9.5 L9.5 8 Z"/></svg></div>
+      <div>
+        <div class="brand-name">Periscope</div>
+        <div class="brand-tag">Research Agent Console</div>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Workspace</div>
+      <div class="sb-item active"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4 H14 V12 H2 Z M5 6 V10 M8 6 V10 M11 6 V10"/></svg>Runs</div>
+      <div class="sb-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2"/></svg>Graphs</div>
+      <div class="sb-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 5 H13 M3 9 H13 M3 13 H8"/></svg>Reports</div>
+      <div class="sb-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 4 V8 L10.5 10"/></svg>Schedules</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Saved searches</div>
+      <div class="sb-item" style="font-size: 12.5px; color: var(--muted);"><span style="width:6px; height:6px; border-radius:50%; background:#67e8f9"></span>Long-context evals</div>
+      <div class="sb-item" style="font-size: 12.5px; color: var(--muted);"><span style="width:6px; height:6px; border-radius:50%; background:#86efac"></span>Inference perf</div>
+      <div class="sb-item" style="font-size: 12.5px; color: var(--muted);"><span style="width:6px; height:6px; border-radius:50%; background:#fcd34d"></span>RAG datasets</div>
+      <div class="sb-item" style="font-size: 12.5px; color: var(--muted);"><span style="width:6px; height:6px; border-radius:50%; background:#c4b5fd"></span>Diffusion · vision</div>
+    </div>
+  </aside>
+
+  <section class="main">
+    <div class="topbar">
+      <div class="crumb">Workspace <span style="opacity:0.5"> / </span><b>Runs</b></div>
+      <div style="flex:1"></div>
+      <div class="topbar-search">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11 L14 14"/></svg>
+        <span style="flex:1">Search runs · use <code>tag:</code>, <code>graph:</code>, <code>status:</code></span>
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn">Import</button>
+      <button class="btn btn-primary"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2 V14 M2 8 H14"/></svg>New run</button>
+    </div>
+
+    <div class="title">Runs</div>
+    <div class="subtitle">All research runs in this workspace. Replay, compare, or schedule a re-run on cron.</div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-l">Runs (30d)</div><div class="kpi-v tab">412</div><div class="kpi-d">+84 vs prev 30d</div></div>
+      <div class="kpi"><div class="kpi-l">Success rate</div><div class="kpi-v tab" style="color:#059669">96.8<span style="font-size:12px; color:var(--subtle)">%</span></div><div class="kpi-d">↗ +1.2pt</div></div>
+      <div class="kpi"><div class="kpi-l">Median latency</div><div class="kpi-v tab">42<span style="font-size:12px; color:var(--subtle)">s</span></div><div class="kpi-d">−6s</div></div>
+      <div class="kpi"><div class="kpi-l">Avg steps / run</div><div class="kpi-v tab">9.2</div><div class="kpi-d neg">+0.4</div></div>
+      <div class="kpi"><div class="kpi-l">Spend MTD</div><div class="kpi-v tab">$246<span style="font-size:12px; color:var(--subtle)">.18</span></div><div class="kpi-d neg">+8.7%</div></div>
+    </div>
+
+    <div class="filters">
+      <span class="chip active">All runs · 412</span>
+      <span class="chip">Done · 384</span>
+      <span class="chip">Running · 6</span>
+      <span class="chip">Failed · 14</span>
+      <span class="chip">Scheduled · 8</span>
+      <span style="margin: 0 6px; color: var(--border-strong)">|</span>
+      <span class="chip">graph: <b>research-v2</b></span>
+      <span class="chip">tag: <b>quantization</b></span>
+      <span class="chip">model: <b>opus-4-7</b></span>
+      <span class="chip" style="border-style: dashed; color: var(--subtle);">+ filter</span>
+      <div style="flex:1"></div>
+      <span class="chip">Sort: <b>most recent</b></span>
+      <span class="chip">Group: <b>none</b></span>
+    </div>
+
+    <div class="panel">
+      <table class="t">
+        <thead><tr><th>Question</th><th>Status</th><th>Graph</th><th>Steps</th><th>Tokens</th><th>Cost</th><th>Latency</th><th>Started</th></tr></thead>
+        <tbody>
+          <tr><td><div class="q">Quantization techniques for MoE architectures<span class="bar-mini"><i style="height:30%"></i><i style="height:50%"></i><i style="height:80%"></i><i style="height:60%"></i><i style="height:90%"></i></span></div><div class="q-sub">run_2k7p9q1m · tags: quantization, moe</div></td><td><span class="pill ok"><span class="dot"></span>completed</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">9</td><td class="tab">14,892</td><td class="tab">$0.082</td><td class="tab">2m 14s</td><td style="color:var(--muted)">just now</td></tr>
+          <tr><td><div class="q">Speculative decoding — what are the practical tradeoffs?</div><div class="q-sub">run_b7c41e0a · tags: inference, perf</div></td><td><span class="pill ok"><span class="dot"></span>completed</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">11</td><td class="tab">22,448</td><td class="tab">$0.124</td><td class="tab">2m 41s</td><td style="color:var(--muted)">18m ago</td></tr>
+          <tr><td><div class="q">Retrieval datasets benchmark · BEIR vs MMLU-Long</div><div class="q-sub">run_a91d2cf · tags: rag, evals</div></td><td><span class="pill run"><span class="dot"></span>running · step 7</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">7</td><td class="tab">9,108</td><td class="tab">$0.054</td><td class="tab">1m 42s · live</td><td style="color:var(--muted)">2m ago</td></tr>
+          <tr><td><div class="q">Diffusion sampling tricks — flow matching vs DDIM</div><div class="q-sub">run_d9e02f1 · tags: diffusion, vision</div></td><td><span class="pill ok"><span class="dot"></span>completed</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">12</td><td class="tab">31,914</td><td class="tab">$0.184</td><td class="tab">3m 02s</td><td style="color:var(--muted)">1h ago</td></tr>
+          <tr><td><div class="q">FlashAttention v3 implementation notes</div><div class="q-sub">run_e1aa452 · tags: inference, kernels</div></td><td><span class="pill ok"><span class="dot"></span>completed</span></td><td><span class="pill cool">summarize-paper</span></td><td class="tab">5</td><td class="tab">8,201</td><td class="tab">$0.041</td><td class="tab">38s</td><td style="color:var(--muted)">3h ago</td></tr>
+          <tr><td><div class="q">Long-context evaluation methods (RULER, Loong)</div><div class="q-sub">run_ff20a85 · tags: long-context, evals</div></td><td><span class="pill ok"><span class="dot"></span>completed</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">10</td><td class="tab">19,408</td><td class="tab">$0.108</td><td class="tab">2m 21s</td><td style="color:var(--muted)">5h ago</td></tr>
+          <tr><td><div class="q">Vector DB comparison for 100M-row support corpus</div><div class="q-sub">run_bb7e34a · tags: vectordb, infra</div></td><td><span class="pill amber"><span class="dot"></span>partial · 1 source unreachable</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">8</td><td class="tab">12,114</td><td class="tab">$0.068</td><td class="tab">1m 49s</td><td style="color:var(--muted)">6h ago</td></tr>
+          <tr><td><div class="q">Survey of LLM eval frameworks (RAGAS, TruLens, Phoenix)</div><div class="q-sub">run_c01af04 · tags: evals, frameworks</div></td><td><span class="pill ok"><span class="dot"></span>completed</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">14</td><td class="tab">38,914</td><td class="tab">$0.221</td><td class="tab">3m 48s</td><td style="color:var(--muted)">yesterday</td></tr>
+          <tr><td><div class="q">MCP vs OpenAI function calling — when to pick which</div><div class="q-sub">run_de8f129 · tags: agents, tooling</div></td><td><span class="pill ok"><span class="dot"></span>completed</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">9</td><td class="tab">17,108</td><td class="tab">$0.094</td><td class="tab">2m 03s</td><td style="color:var(--muted)">yesterday</td></tr>
+          <tr><td><div class="q">State-of-the-art in code-aware retrieval (2024–2026)</div><div class="q-sub">run_71fb0c2 · tags: rag, code</div></td><td><span class="pill rose"><span class="dot"></span>failed · planner timeout</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">2</td><td class="tab">3,408</td><td class="tab">$0.018</td><td class="tab">62s</td><td style="color:var(--muted)">2d ago</td></tr>
+          <tr><td><div class="q">Open-source observability stacks for early-stage SaaS</div><div class="q-sub">run_882ac1e · tags: infra, observability</div></td><td><span class="pill ok"><span class="dot"></span>completed</span></td><td><span class="pill cool">research-v2</span></td><td class="tab">8</td><td class="tab">14,201</td><td class="tab">$0.077</td><td class="tab">1m 51s</td><td style="color:var(--muted)">2d ago</td></tr>
+          <tr><td><div class="q">DSPy compile + bootstrap pipelines — production usage</div><div class="q-sub">run_30811af · tags: dspy, agents</div></td><td><span class="pill ok"><span class="dot"></span>completed</span></td><td><span class="pill cool">summarize-paper</span></td><td class="tab">6</td><td class="tab">10,108</td><td class="tab">$0.057</td><td class="tab">44s</td><td style="color:var(--muted)">3d ago</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+</div>
+</body>
+</html>

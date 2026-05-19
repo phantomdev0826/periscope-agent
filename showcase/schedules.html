@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Schedules · Periscope</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2306b6d4'/><stop offset='1' stop-color='%230891b2'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><path d='M9 16 L16 9 L23 16 L16 23 Z' fill='white'/></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f9fb; --panel: #ffffff; --panel-2: #f3f5f8;
+  --ink: #1a1f2e; --ink-2: #2e3445; --muted: #5a627a; --subtle: #8b92a8;
+  --border: #e3e7ed; --border-strong: #d0d6e0;
+  --accent: #0891b2; --accent-soft: #e0f2fe;
+  --emerald: #059669; --rose: #e11d48; --amber: #d97706; --indigo: #4f46e5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; letter-spacing: -0.011em; line-height: 1.5; }
+.mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+.tab { font-variant-numeric: tabular-nums; }
+a { color: var(--accent); text-decoration: none; }
+
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 20px 16px; }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+.brand-logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); display: flex; align-items: center; justify-content: center; color: white; }
+.brand-name { font-size: 15px; font-weight: 600; }
+.brand-tag { font-size: 11px; color: var(--subtle); margin-top: -1px; }
+.sb-section { margin-top: 18px; }
+.sb-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--subtle); padding: 0 8px; margin-bottom: 6px; font-weight: 500; }
+.sb-item { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 6px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; }
+.sb-item:hover { background: var(--panel-2); }
+.sb-item.active { background: var(--accent-soft); color: #075985; font-weight: 500; }
+.sb-item svg { width: 15px; height: 15px; opacity: 0.85; }
+
+.main { padding: 24px 32px; }
+.topbar { background: var(--panel); border-bottom: 1px solid var(--border); padding: 10px 22px; display: flex; align-items: center; gap: 12px; margin: -24px -32px 24px; font-size: 13px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 7px; font-size: 12.5px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--ink-2); }
+.btn-primary { background: var(--ink); color: white; border-color: var(--ink); }
+.kbd { padding: 1px 5px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 10px; background: white; color: var(--subtle); font-family: 'JetBrains Mono'; }
+
+.title { font-size: 26px; font-weight: 600; letter-spacing: -0.022em; margin-bottom: 4px; }
+.subtitle { color: var(--muted); font-size: 13.5px; }
+
+/* Calendar — 7d × 24h heatmap of scheduled fires */
+.cal-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin: 22px 0 16px; }
+.cal-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-title { font-size: 13px; font-weight: 600; }
+.cal-sub { font-size: 11.5px; color: var(--subtle); margin-top: 2px; }
+.cal-legend { display: flex; gap: 12px; font-size: 11px; color: var(--muted); }
+.cal-grid { display: grid; grid-template-columns: 50px repeat(24, 1fr); gap: 2px; }
+.cal-hour { font-size: 9.5px; color: var(--subtle); font-family: 'JetBrains Mono'; text-align: center; padding-top: 4px; }
+.cal-day-label { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; font-weight: 500; }
+.cal-day-label.today { color: var(--ink); }
+.cal-cell { height: 18px; border-radius: 3px; background: #eef0f3; }
+.cal-cell.h1 { background: #d8f3fb; }
+.cal-cell.h2 { background: #98e3f1; }
+.cal-cell.h3 { background: #2cb8d6; }
+.cal-cell.h4 { background: var(--accent); }
+.cal-cell.now { box-shadow: 0 0 0 2px var(--ink); }
+
+/* Schedule rows */
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.panel-h { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.panel-h h3 { font-size: 13.5px; font-weight: 600; }
+.panel-h .s { font-size: 11.5px; color: var(--subtle); margin-top: 2px; }
+.sched { display: grid; grid-template-columns: 1fr 240px 90px 160px 110px 30px; gap: 14px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.sched:last-child { border-bottom: 0; }
+.sched:hover { background: var(--panel-2); }
+.sched-name { font-weight: 500; color: var(--ink); }
+.sched-q { color: var(--muted); font-size: 12px; margin-top: 2px; line-height: 1.4; }
+.sched-cron { font-family: 'JetBrains Mono'; font-size: 11.5px; color: var(--ink-2); background: var(--panel-2); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); }
+.cron-pretty { font-size: 10.5px; color: var(--subtle); margin-top: 3px; font-family: 'Inter'; }
+.run-mini { display: flex; gap: 2px; align-items: end; height: 22px; }
+.run-mini i { width: 5px; border-radius: 1px; background: var(--emerald); }
+.run-mini i.fail { background: var(--rose); }
+.run-mini i.skip { background: var(--border-strong); }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+.pill .dot { width: 5px; height: 5px; border-radius: 50%; }
+.pill.ok { background: #ecfdf5; color: var(--emerald); } .pill.ok .dot { background: var(--emerald); }
+.pill.paused { background: #f3f4f6; color: var(--muted); } .pill.paused .dot { background: var(--subtle); }
+.pill.cool { background: #ecfeff; color: #0e7490; }
+.next-fire { font-family: 'JetBrains Mono'; font-size: 12px; color: var(--ink-2); }
+.next-fire .rel { color: var(--subtle); font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 8 L8 4 L12 8 L8 12 Z M8 6.5 L6.5 8 L8 9.5 L9.5 8 Z"/></svg></div>
+      <div><div class="brand-name">Periscope</div><div class="brand-tag">Research Agent Console</div></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Workspace</div>
+      <div class="sb-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4 H14 V12 H2 Z M5 6 V10 M8 6 V10 M11 6 V10"/></svg>Runs</div>
+      <div class="sb-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2"/></svg>Graphs</div>
+      <div class="sb-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 5 H13 M3 9 H13 M3 13 H8"/></svg>Reports</div>
+      <div class="sb-item active"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 4 V8 L10.5 10"/></svg>Schedules</div>
+    </div>
+  </aside>
+
+  <section class="main">
+    <div class="topbar">
+      <span style="color:var(--subtle)">Workspace <span style="opacity:0.5">/</span></span> <b>Schedules</b>
+      <div style="flex:1"></div>
+      <button class="btn">Pause all</button>
+      <button class="btn btn-primary"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2 V14 M2 8 H14"/></svg>New schedule</button>
+    </div>
+
+    <div class="title">Schedules</div>
+    <div class="subtitle">Cron-triggered runs · 11 active · 2 paused · next fire in <span class="mono">04:18</span></div>
+
+    <div class="cal-card">
+      <div class="cal-h">
+        <div>
+          <div class="cal-title">This week · UTC</div>
+          <div class="cal-sub">Heatmap of scheduled fires per hour · cell intensity = number of jobs scheduled</div>
+        </div>
+        <div class="cal-legend">
+          <span><span style="display:inline-block; width:10px; height:10px; background:#eef0f3; border-radius:2px; vertical-align:middle"></span> 0</span>
+          <span><span style="display:inline-block; width:10px; height:10px; background:#d8f3fb; border-radius:2px; vertical-align:middle"></span> 1</span>
+          <span><span style="display:inline-block; width:10px; height:10px; background:#98e3f1; border-radius:2px; vertical-align:middle"></span> 2</span>
+          <span><span style="display:inline-block; width:10px; height:10px; background:#2cb8d6; border-radius:2px; vertical-align:middle"></span> 3</span>
+          <span><span style="display:inline-block; width:10px; height:10px; background:var(--accent); border-radius:2px; vertical-align:middle"></span> 4+</span>
+        </div>
+      </div>
+      <div class="cal-grid">
+        <div></div>
+        <div class="cal-hour">0</div><div class="cal-hour">2</div><div class="cal-hour">4</div><div class="cal-hour">6</div><div class="cal-hour">8</div><div class="cal-hour">10</div><div class="cal-hour">12</div><div class="cal-hour">14</div><div class="cal-hour">16</div><div class="cal-hour">18</div><div class="cal-hour">20</div><div class="cal-hour">22</div>
+        <div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div><div class="cal-hour"></div>
+
+        <div class="cal-day-label">Mon</div>
+        <div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h3"></div><div class="cal-cell h3"></div><div class="cal-cell h4"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h3"></div><div class="cal-cell h2"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div>
+
+        <div class="cal-day-label">Tue</div>
+        <div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h2"></div><div class="cal-cell h3"></div><div class="cal-cell h3"></div><div class="cal-cell h4"></div><div class="cal-cell h4"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div>
+
+        <div class="cal-day-label">Wed</div>
+        <div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h3"></div><div class="cal-cell h4"></div><div class="cal-cell h4"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell h1"></div><div class="cal-cell h1"></div><div class="cal-cell h2"></div><div class="cal-cell h3"></div><div class="cal-cell h3"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div>
+
+        <div class="cal-day-label">Thu</div>
+        <div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h3"></div><div class="cal-cell h3"></div><div class="cal-cell h4"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h3"></div><div class="cal-cell h2"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div>
+
+        <div class="cal-day-label today">Fri · today</div>
+        <div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h3"></div><div class="cal-cell h4"></div><div class="cal-cell h4"></div><div class="cal-cell h2 now"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell h1"></div><div class="cal-cell h1"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell"></div>
+
+        <div class="cal-day-label">Sat</div>
+        <div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+
+        <div class="cal-day-label">Sun</div>
+        <div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell h1"></div><div class="cal-cell h2"></div><div class="cal-cell h2"></div><div class="cal-cell h1"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">
+        <div>
+          <h3>Active schedules</h3>
+          <div class="s">Click to inspect last 14 fires. Hover a cron to preview next 5.</div>
+        </div>
+        <button class="btn">Export YAML</button>
+      </div>
+
+      <div class="sched">
+        <div>
+          <div class="sched-name">Daily inference perf digest</div>
+          <div class="sched-q">"Roundup of new papers on inference acceleration, FlashAttention variants, speculative decoding"</div>
+        </div>
+        <div>
+          <div class="sched-cron">0 14 * * *</div>
+          <div class="cron-pretty">every day at 14:00 UTC</div>
+        </div>
+        <div><span class="pill ok"><span class="dot"></span>active</span></div>
+        <div><div class="run-mini"><i style="height:78%"></i><i style="height:88%"></i><i style="height:62%"></i><i style="height:74%"></i><i style="height:90%"></i><i style="height:64%"></i><i style="height:82%"></i><i class="fail" style="height:30%"></i><i style="height:88%"></i><i style="height:74%"></i><i style="height:80%"></i><i style="height:92%"></i><i style="height:78%"></i><i style="height:84%"></i></div></div>
+        <div class="next-fire">14:00 UTC<div class="rel">in 04:18:42</div></div>
+        <div style="color:var(--subtle); cursor: pointer; text-align: right">⋯</div>
+      </div>
+
+      <div class="sched">
+        <div>
+          <div class="sched-name">Weekly RAG eval digest</div>
+          <div class="sched-q">"Compare RAGAS / TruLens / Phoenix releases · note benchmark deltas"</div>
+        </div>
+        <div>
+          <div class="sched-cron">0 9 * * 1</div>
+          <div class="cron-pretty">Mondays at 09:00 UTC</div>
+        </div>
+        <div><span class="pill ok"><span class="dot"></span>active</span></div>
+        <div><div class="run-mini"><i style="height:80%"></i><i style="height:84%"></i><i style="height:76%"></i><i style="height:88%"></i><i style="height:82%"></i><i style="height:90%"></i><i style="height:74%"></i></div></div>
+        <div class="next-fire">Mon 09:00 UTC<div class="rel">in 3d 18h</div></div>
+        <div style="color:var(--subtle); cursor: pointer; text-align: right">⋯</div>
+      </div>
+
+      <div class="sched">
+        <div>
+          <div class="sched-name">Hourly arxiv watch · cs.CL + cs.LG</div>
+          <div class="sched-q">"Surface new papers on retrieval, long-context, agentic workflows"</div>
+        </div>
+        <div>
+          <div class="sched-cron">0 * * * *</div>
+          <div class="cron-pretty">every hour on the hour</div>
+        </div>
+        <div><span class="pill ok"><span class="dot"></span>active</span></div>
+        <div><div class="run-mini"><i style="height:60%"></i><i style="height:68%"></i><i style="height:64%"></i><i style="height:72%"></i><i style="height:58%"></i><i style="height:78%"></i><i style="height:70%"></i><i style="height:64%"></i><i style="height:72%"></i><i style="height:80%"></i><i style="height:68%"></i><i style="height:74%"></i><i style="height:62%"></i><i style="height:78%"></i></div></div>
+        <div class="next-fire">09:00 UTC<div class="rel">in 26 min</div></div>
+        <div style="color:var(--subtle); cursor: pointer; text-align: right">⋯</div>
+      </div>
+
+      <div class="sched">
+        <div>
+          <div class="sched-name">Monthly long-context survey</div>
+          <div class="sched-q">"State-of-the-art in long-context evaluation. Include needle-in-haystack, RULER, Loong"</div>
+        </div>
+        <div>
+          <div class="sched-cron">0 12 1 * *</div>
+          <div class="cron-pretty">1st of every month, 12:00 UTC</div>
+        </div>
+        <div><span class="pill ok"><span class="dot"></span>active</span></div>
+        <div><div class="run-mini"><i style="height:80%"></i><i style="height:74%"></i><i style="height:88%"></i><i style="height:82%"></i><i style="height:90%"></i></div></div>
+        <div class="next-fire">Jun 1, 12:00<div class="rel">in 13d</div></div>
+        <div style="color:var(--subtle); cursor: pointer; text-align: right">⋯</div>
+      </div>
+
+      <div class="sched">
+        <div>
+          <div class="sched-name">Quantization techniques · MoE focus</div>
+          <div class="sched-q">"Quantization tradeoffs for MoE models · FP8 / NF4 / MX formats"</div>
+        </div>
+        <div>
+          <div class="sched-cron">0 7 * * 1-5</div>
+          <div class="cron-pretty">weekdays 07:00 UTC</div>
+        </div>
+        <div><span class="pill paused"><span class="dot"></span>paused</span></div>
+        <div><div class="run-mini"><i style="height:78%"></i><i style="height:68%"></i><i style="height:84%"></i><i style="height:74%"></i><i class="skip" style="height:50%"></i><i class="skip" style="height:50%"></i><i class="skip" style="height:50%"></i></div></div>
+        <div class="next-fire" style="color: var(--subtle)">—<div class="rel">paused 2d ago</div></div>
+        <div style="color:var(--subtle); cursor: pointer; text-align: right">⋯</div>
+      </div>
+
+      <div class="sched">
+        <div>
+          <div class="sched-name">Diffusion · video gen weekly</div>
+          <div class="sched-q">"New diffusion video models · Sora-class · MovieGen, Veo, OpenSora"</div>
+        </div>
+        <div>
+          <div class="sched-cron">0 16 * * 4</div>
+          <div class="cron-pretty">Thursdays at 16:00 UTC</div>
+        </div>
+        <div><span class="pill ok"><span class="dot"></span>active</span></div>
+        <div><div class="run-mini"><i style="height:84%"></i><i style="height:78%"></i><i style="height:90%"></i><i style="height:88%"></i><i style="height:74%"></i><i style="height:82%"></i></div></div>
+        <div class="next-fire">Thu 16:00 UTC<div class="rel">in 6d 11h</div></div>
+        <div style="color:var(--subtle); cursor: pointer; text-align: right">⋯</div>
+      </div>
+    </div>
+
+  </section>
+</div>
+</body>
+</html>
