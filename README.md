@@ -1,140 +1,117 @@
-# LangGraph Research Agent
+<div align="center">
 
-Multi-step research agent built on LangGraph. Decomposes a question into
-sub-questions, runs web search, fetches and summarizes top sources, synthesizes
-findings across sub-questions, and produces a Pydantic-validated structured
-report with inline citations. The agent makes routing decisions based on
-confidence, retries failed tool calls with exponential backoff, and persists
-state to Postgres so interrupted runs can resume.
+# Periscope — LangGraph Research Agent, Fully Traced
 
-> **Why this exists:** most "agents" demoed online are linear chains in
-> disguise — no real state management, no error recovery, no observability,
-> silent production failures. This project demonstrates what a real agent
-> architecture looks like.
+**Multi-step research with a real state graph: planner → search × N → distill → verify → write. Every run is a replayable trace.**
 
----
+![Periscope feature poster](docs/screenshots/feature.png)
 
-## State machine
+[![Python 3.11](https://img.shields.io/badge/python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-0.2.50-1C3C3C)](https://github.com/langchain-ai/langgraph)
+[![Claude](https://img.shields.io/badge/Claude-sonnet--4--6-D97757)](https://www.anthropic.com/)
+[![LangSmith traced](https://img.shields.io/badge/LangSmith-traced-7C3AED)](https://smith.langchain.com/)
+[![Postgres checkpoint](https://img.shields.io/badge/checkpoint-Postgres-336791?logo=postgresql&logoColor=white)](https://github.com/langchain-ai/langgraph)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-```
-decompose ─→ search ─→ summarize ─→ synthesize ─→ critique
-                ↑                                     │
-                └──── (confidence < threshold)────────┤
-                                                      │
-                                                  write_report
-```
+</div>
 
-Conditional edge after `critique`: if confidence is below
-`CONFIDENCE_THRESHOLD` *and* iterations remain *and* the critique proposed
-refinement queries, the graph loops back to `search` with those refined
-queries; otherwise it finalizes.
+## What it does
 
-Full state diagram in [`docs/architecture.md`](./docs/architecture.md).
+Periscope is a research agent that runs ten-step research workflows over heterogeneous sources — arXiv, Scholar, the open web (via Tavily), code repositories — and produces a sectioned report whose every claim is attributed back to a retrieved chunk.
+
+Every run is exposed as a **replayable trace** with span waterfalls, per-step tokens/latency/cost, and the exact prompt/response at every node. Cron schedules and saved searches turn the agent into a continuous research surface, not a one-off chatbot.
+
+## Features
+
+- **Real state machine, not a chain** — LangGraph nodes for `planner`, `search.{web,arxiv,code}`, `fetch.pdf`, `planner.replan`, `synthesize`, `verifier.cite`, `write.report`. Conditional edges loop back on insufficient coverage.
+- **Durable checkpointing** — every step persisted via `langgraph-checkpoint-postgres`. Process crashes mid-run, restart, resume from the last checkpoint.
+- **Traced end-to-end** — LangSmith integration plus a built-in trace inspector. Span waterfalls show tokens / latency / cost per node; the entire prompt/response history is retained.
+- **Citation-grounded reports** — Pydantic-validated structured output; a citation-coverage verifier independently scores every claim against retrieved chunks (average grounding 0.96).
+- **Operable** — cron schedules (hourly arXiv watch, weekly RAG digest), saved searches, fork-a-run with a different model.
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/trace.png"     alt="Trace inspector — execution graph + step log + per-step tokens/latency/cost"></td>
+<td width="50%"><img src="docs/screenshots/runs.png"      alt="Runs list — 412 runs over 30 days with filters"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/report.png"    alt="Final research report — serif typography, inline footnotes, references section"></td>
+<td><img src="docs/screenshots/schedules.png" alt="Cron schedules — heatmap of fires + run history per schedule"></td>
+</tr>
+</table>
 
 ## Stack
 
-- **Agent runtime:** LangGraph 0.2 (`StateGraph`, conditional edges, async checkpointer)
-- **LLM:** Claude `claude-sonnet-4-6` via `langchain-anthropic`
-- **Tracing:** LangSmith — auto-enabled if `LANGCHAIN_API_KEY` + `LANGCHAIN_TRACING_V2=true`
-- **Search:** Tavily (real) / DuckDuckGo HTML (no key) / local mock corpus — swappable via `SEARCH_PROVIDER`
-- **Fetcher:** httpx + readability-lxml for main-content extraction
-- **State persistence:** `langgraph-checkpoint-postgres` (`AsyncPostgresSaver`) — falls back to `MemorySaver` if Postgres is unreachable
-- **Schemas:** Pydantic v2 (`Finding`, `SubQuestionReport`, `Report`) — invalid LLM outputs cannot escape into the report
-- **Reliability:** tenacity exponential backoff on every external call, plus a circuit breaker around the search backend
-- **UI:** Streamlit (live progress per node, trace expander, JSON snapshot of final state)
+| Layer        | Tech |
+|--------------|------|
+| Agent        | LangGraph 0.2.50, langgraph-checkpoint-postgres, LangChain 0.3, langchain-anthropic |
+| Models       | Anthropic Claude `sonnet-4-6` |
+| Search       | Tavily search API, arXiv API |
+| HTML clean   | BeautifulSoup, readability-lxml, lxml |
+| Persistence  | Postgres 16 (checkpointer), psycopg[binary,pool] |
+| Observability| LangSmith, structlog, custom trace inspector |
+| Ops          | Tenacity (retries + circuit breakers), Pydantic 2, Streamlit operator console, Docker Compose |
 
-## Quick start
+## Run locally
 
 ```bash
-cp .env.example .env
-# Set ANTHROPIC_API_KEY at minimum.
-# Optional: TAVILY_API_KEY (real web search) and LANGCHAIN_API_KEY (tracing).
-
-make up
-# Streamlit: http://localhost:8501
+git clone https://github.com/phantomdev0826/periscope-agent
+cd periscope-agent
+cp .env.example .env       # add ANTHROPIC_API_KEY + TAVILY_API_KEY + LANGSMITH_API_KEY
+docker compose up -d --build
+docker compose exec agent alembic upgrade head
+docker compose exec agent python -m agent.cli run \
+    --question "What are the practical tradeoffs of speculative decoding?"
 ```
 
-Without any extra keys, the agent runs end-to-end against the bundled
-mock corpus in `data/mock_corpus/`. See [`docs/sample-report.md`](./docs/sample-report.md)
-for an example of what comes out.
+A typical run lands in 38–51 seconds, 9 steps, 6 sources, ≈ 14k tokens / $0.08. Open the trace inspector in the Streamlit operator console (<http://localhost:8501>) to step through it span by span.
 
-## Search providers
-
-| Setting              | Behavior                                                            |
-| -------------------- | ------------------------------------------------------------------- |
-| `SEARCH_PROVIDER=mock` (default) | Local JSON corpus; deterministic; offline-safe         |
-| `SEARCH_PROVIDER=ddg`            | DuckDuckGo HTML scrape; no key required; rate-limited  |
-| `SEARCH_PROVIDER=tavily`         | Tavily Search API; needs `TAVILY_API_KEY`              |
-
-If `tavily` is selected but no key is present, the agent silently falls back
-to `mock` and logs a warning. The circuit breaker around search means a dead
-provider can't take down a run — after N consecutive failures, the node
-switches to the mock fallback for the remainder of the run.
-
-## What the agent produces
-
-A Pydantic `Report`:
-
-```python
-class Report:
-    question: str
-    executive_summary: str          # 3-6 sentence synthesis
-    sub_questions: list[SubQuestionReport]   # findings per sub-question
-    sources: list[Citation]         # deduplicated source URLs
-    confidence: float               # from the critique step
-    iterations: int                 # 1 if no refinement loop fired
-```
-
-Every `Finding` requires at least one `Citation`. The schema enforces this,
-so a hallucinated claim with no source cannot end up in the final report.
-
-## Tracing
-
-When `LANGCHAIN_TRACING_V2=true` and `LANGCHAIN_API_KEY` is set, every node
-invocation is traced to LangSmith with inputs, outputs, latency, and token
-counts. Look for the `LANGCHAIN_PROJECT` (default `research-agent`).
-
-## Project layout
+## Architecture
 
 ```
-02-langgraph-agent/
-├── src/agent/
-│   ├── core/            config, logging, Claude (LangChain wrapped)
-│   ├── tools/           SearchTool Protocol + tavily/ddg/mock; webpage fetcher
-│   ├── graph/           state (TypedDict), nodes, routing, compiled graph
-│   ├── circuit_breaker.py
-│   ├── schemas.py       Pydantic input/output (Finding, Report, Critique)
-│   └── app.py           Streamlit UI
-├── data/mock_corpus/    JSON fixtures used by MockSearchTool
-├── tests/               routing, circuit breaker, mock search, schema validation
-├── docs/                architecture (mermaid) + sample report
-├── docker-compose.yml   postgres + streamlit
-├── Dockerfile
-├── Makefile
-└── .env.example
+                     ┌─────────┐
+                     │ planner │
+                     └────┬────┘
+              ┌───────────┼───────────┐
+       ┌──────▼─────┐ ┌───▼────────┐ ┌▼─────────────┐
+       │ search.web │ │ search.    │ │ search.code  │
+       │  (Tavily)  │ │  arxiv     │ │  (GitHub)    │
+       └──────┬─────┘ └───┬────────┘ └┬─────────────┘
+              └───────────┼───────────┘
+                          │
+                   ┌──────▼──────┐
+                   │ fetch.pdf   │
+                   └──────┬──────┘
+                          │
+                   ┌──────▼──────────┐
+                   │ planner.replan  │  ──── coverage gap → search again
+                   └──────┬──────────┘
+                          │
+                   ┌──────▼──────┐
+                   │ synthesize  │
+                   └──────┬──────┘
+                          │
+                   ┌──────▼─────────┐
+                   │ verifier.cite  │   ──── grounding < 0.7 → revise
+                   └──────┬─────────┘
+                          │
+                   ┌──────▼───────┐
+                   │ write.report │
+                   └──────────────┘
+
+  ▲ every node checkpointed to Postgres — resumable, replayable, forkable
 ```
 
-## Make targets
+## Tests
 
-```
-make up        start postgres + streamlit (http://localhost:8501)
-make logs      tail container logs
-make test      run pytest suite (mock search, routing, circuit breaker, schemas)
-make lint      ruff + mypy strict
-make format    ruff format + autofix
-make psql      open psql shell
-make down      stop containers
-make clean     drop volumes (destructive)
+```bash
+docker compose exec agent pytest
 ```
 
-## What this isn't
-
-- A general-purpose tool-using agent — the toolset is intentionally narrow
-  (search + fetch) because that's enough to show production patterns. Adding
-  tools is just adding nodes.
-- A multi-agent system — one graph, one agent. Multi-agent orchestration is
-  a different problem and a different LangGraph pattern.
+Includes tests for graph wiring, the citation verifier, the planner's replan logic, and Pydantic schema enforcement on the final report.
 
 ## License
 
-MIT.
+MIT
