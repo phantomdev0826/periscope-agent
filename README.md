@@ -57,7 +57,7 @@ Every run is exposed as a **replayable trace** with span waterfalls, per-step to
 ## Run locally
 
 ```bash
-git clone https://github.com/phantomdev0826/periscope-agent
+git clone https://github.com/vltech55/periscope-agent
 cd periscope-agent
 cp .env.example .env       # add ANTHROPIC_API_KEY + TAVILY_API_KEY + LANGSMITH_API_KEY
 docker compose up -d --build
