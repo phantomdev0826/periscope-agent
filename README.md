@@ -2,7 +2,7 @@
 
 # Periscope — LangGraph Research Agent, Fully Traced
 
-**Multi-step research with a real state graph: planner → search × N → distill → verify → write. Every run is a replayable trace.**
+**Multi-step research on a real LangGraph state machine: decompose → search → summarize → synthesize → critique → write, with a conditional refine loop and durable Postgres checkpoints. Every run is resumable and replayable.**
 
 ![Periscope feature poster](docs/screenshots/feature.png)
 
