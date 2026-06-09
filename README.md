@@ -1,8 +1,8 @@
 <div align="center">
 
-# Periscope — LangGraph Research Agent, Fully Traced
+# Periscope
 
-**Multi-step research on a real LangGraph state machine: decompose → search → summarize → synthesize → critique → write, with a conditional refine loop and durable Postgres checkpoints. Every run is resumable and replayable.**
+**LangGraph research agent with a real state machine: decompose → search → summarize → synthesize → critique → write, with a conditional refine loop and durable Postgres checkpoints. Every run is resumable and replayable.**
 
 ![Periscope feature poster](docs/screenshots/feature.png)
 
@@ -15,17 +15,31 @@
 
 </div>
 
-## What it does
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Tech Stack](#tech-stack)
+- [Installation](#installation)
+- [Architecture](#architecture)
+- [Testing](#testing)
+- [Author](#author)
+- [License](#license)
+
+## Overview
 
 Periscope is a research agent that runs ten-step research workflows over heterogeneous sources — arXiv, Scholar, the open web (via Tavily), code repositories — and produces a sectioned report whose every claim is attributed back to a retrieved chunk.
 
-Every run is exposed as a **replayable trace** with span waterfalls, per-step tokens/latency/cost, and the exact prompt/response at every node. Cron schedules and saved searches turn the agent into a continuous research surface, not a one-off chatbot.
+Every run is exposed as a replayable trace with span waterfalls, per-step tokens, latency, cost, and the exact prompt/response at every node. Cron schedules and saved searches turn the agent into a continuous research surface, not a one-off chatbot.
 
 ## Features
 
 - **Real state machine, not a chain** — LangGraph nodes for `planner`, `search.{web,arxiv,code}`, `fetch.pdf`, `planner.replan`, `synthesize`, `verifier.cite`, `write.report`. Conditional edges loop back on insufficient coverage.
 - **Durable checkpointing** — every step persisted via `langgraph-checkpoint-postgres`. Process crashes mid-run, restart, resume from the last checkpoint.
-- **Traced end-to-end** — LangSmith integration plus a built-in trace inspector. Span waterfalls show tokens / latency / cost per node; the entire prompt/response history is retained.
+- **Traced end-to-end** — LangSmith integration plus a built-in trace inspector. Span waterfalls show tokens, latency, cost per node; the entire prompt/response history is retained.
 - **Citation-grounded reports** — Pydantic-validated structured output; a citation-coverage verifier independently scores every claim against retrieved chunks (average grounding 0.96).
 - **Operable** — cron schedules (hourly arXiv watch, weekly RAG digest), saved searches, fork-a-run with a different model.
 
@@ -42,22 +56,22 @@ Every run is exposed as a **replayable trace** with span waterfalls, per-step to
 </tr>
 </table>
 
-## Stack
+## Tech Stack
 
-| Layer        | Tech |
-|--------------|------|
-| Agent        | LangGraph 0.2.50, langgraph-checkpoint-postgres, LangChain 0.3, langchain-anthropic |
-| Models       | Anthropic Claude `sonnet-4-6` |
-| Search       | Tavily search API, arXiv API |
-| HTML clean   | BeautifulSoup, readability-lxml, lxml |
-| Persistence  | Postgres 16 (checkpointer), psycopg[binary,pool] |
-| Observability| LangSmith, structlog, custom trace inspector |
-| Ops          | Tenacity (retries + circuit breakers), Pydantic 2, Streamlit operator console, Docker Compose |
+| Layer         | Technology |
+|---------------|------------|
+| Agent         | LangGraph 0.2.50, langgraph-checkpoint-postgres, LangChain 0.3, langchain-anthropic |
+| Models        | Anthropic Claude `sonnet-4-6` |
+| Search        | Tavily search API, arXiv API |
+| HTML cleanup  | BeautifulSoup, readability-lxml, lxml |
+| Persistence   | Postgres 16 (checkpointer), psycopg[binary,pool] |
+| Observability | LangSmith, structlog, custom trace inspector |
+| Operations    | Tenacity (retries + circuit breakers), Pydantic 2, Streamlit operator console, Docker Compose |
 
-## Run locally
+## Installation
 
 ```bash
-git clone https://github.com/vltech55/periscope-agent
+git clone https://github.com/vltech55/periscope-agent.git
 cd periscope-agent
 cp .env.example .env       # add ANTHROPIC_API_KEY + TAVILY_API_KEY + LANGSMITH_API_KEY
 docker compose up -d --build
@@ -104,7 +118,7 @@ A typical run lands in 38–51 seconds, 9 steps, 6 sources, ≈ 14k tokens / $0.
   ▲ every node checkpointed to Postgres — resumable, replayable, forkable
 ```
 
-## Tests
+## Testing
 
 ```bash
 docker compose exec agent pytest
@@ -112,6 +126,12 @@ docker compose exec agent pytest
 
 Includes tests for graph wiring, the citation verifier, the planner's replan logic, and Pydantic schema enforcement on the final report.
 
+## Author
+
+**Vlad L.** — independent senior engineer specializing in production-grade LLM systems (RAG, agents, gateways, multi-tenant SaaS).
+
+[![GitHub](https://img.shields.io/badge/GitHub-vltech55-181717?logo=github)](https://github.com/vltech55)
+
 ## License
 
-MIT
+[MIT](LICENSE) © Vlad L.
